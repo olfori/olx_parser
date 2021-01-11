@@ -10,28 +10,11 @@ from django.views.generic import ListView
 
 from django.contrib.auth import logout
 
-'''
-def index(request):
-    """Домашняя страница."""
-    if request.method == 'POST':
-        username = request.POST['username']
-        password = request.POST['password']
-        user = authenticate(username=username, password=password)
+from .models import SearchPhrases, Ad
+from .models import SPManager as SPM
 
-        if user is not None:
-            if user.is_active:
-                login(request, user)
-                # Redirect to a success page.
-                return redirect(reverse('dashboard'))
-            else:
-                # Return a 'disabled account' error message
-                ...
-        else:
-            # Return an 'invalid login' error message.
-            ...
-
-    return render(request, 'signin.html')
-'''
+import json
+from django.http import HttpResponse
 
 
 class IndexView(ListView):
@@ -47,24 +30,59 @@ class IndexView(ListView):
                 login(request, user)
                 # Redirect to a success page.
                 return redirect(reverse('dashboard'))
-
         return render(request, 'signin.html')
 
 
 @login_required(login_url='/')
 def dashboard(request, template_name='dashboard.html'):
     """Dashboard page"""
-
     if request.user.is_authenticated:
         user_name = request.user.username
-        context = {'user_name': user_name}
-        return render(request, template_name, context=context)
 
-    #print('request = ', request.user.username)
+        return render(request, template_name, {
+            'user_name': user_name,
+            'sp_data': SPM().get_all(),
+        })
     return redirect(reverse('index'))
+
+
+@login_required(login_url='/')
+def ads(request, sp_id, template_name='ads.html'):
+    """Ads page"""
+    ads = SPM().get_ads(sp_id)
+    print('ads 3', ads[:3])
+    return render(request, template_name, {
+        'ads': ads,
+    })
 
 
 @login_required(login_url='/')
 def logout_view(request):
     logout(request)
+    return redirect(reverse('index'))
+
+
+@login_required(login_url='/')
+def ajax_sp_del(request):
+
+    if request.method == 'POST':
+        spm = SPM()
+        del_id = int(request.POST['param'])
+        spm.delete(del_id)
+        dump = json.dumps(list(spm.get_all()))
+        return HttpResponse(dump, content_type='application/json')
+
+    return redirect(reverse('index'))
+
+
+@login_required(login_url='/')
+def ajax_sp_add(request):
+
+    if request.method == 'POST':
+        spm = SPM()
+        phrase = request.POST['param']
+        spm.get_or_create(phrase)
+        dump = json.dumps(list(spm.get_all()))
+        return HttpResponse(dump, content_type='application/json')
+
     return redirect(reverse('index'))
