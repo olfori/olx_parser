@@ -1,3 +1,5 @@
+import datetime
+
 from django.db import models
 
 from django.db.models import Count
@@ -34,14 +36,20 @@ class SearchPhrases(models.Model):                  # Поисковые зап�
 
 class SPManager():
 
-    def get_or_create(self, search_phrase):
+    def get_by_phrase(self, search_phrase: str) -> SearchPhrases:
+        sp_obj = SearchPhrases.objects.get(
+            phrase=search_phrase)
+        return sp_obj
+
+    def get_or_create(self, search_phrase: str) -> SearchPhrases:
+        """Get or create instance of an SearchPhrases"""
         sp_obj, created = SearchPhrases.objects.get_or_create(
             phrase=search_phrase,
             defaults={'phrase': search_phrase},
         )
         return sp_obj
 
-    def get_all(self):
+    def get_all(self) -> list:
         sp = SearchPhrases.objects.annotate(
             total_ads=Count(
                 'ads',
@@ -52,23 +60,41 @@ class SPManager():
                 filter=Q(ads__closed=True)))
         return sp.values()
 
-    def get_ads(self, sp_id):
+    def get_ads(self, sp_id: int) -> list:
         sp_obj = SearchPhrases.objects.get(pk=sp_id)
         ads = sp_obj.ads.all().order_by('price')
         return ads.values()
 
-    def delete(self, del_id):
+    def delete(self, del_id: int) -> None:
         del_obj = SearchPhrases.objects.get(pk=del_id)
         if del_obj is not None:
             del_obj.delete()
 
+    def del_closed_ad(self, search_phrase: str) -> None:
+        sp_obj = SearchPhrases.objects.get(phrase=search_phrase)
+        sp_obj.ads.filter(closed=True).delete()
+
 
 class AdManager():
 
-    def update_or_create(self, ad_data, search_phrase):
+    def update_or_create(self, ad_data: dict, search_phrase: str) -> None:
+        """Update or instantiate an Ad for this SearchPhrase"""
         sp_obj = SPManager().get_or_create(search_phrase)
         ad_obj, created = Ad.objects.update_or_create(
             id=ad_data['id'],
             defaults=ad_data,
         )
         sp_obj.ads.add(ad_obj)
+
+    def set_given_as_closed(self, id_list: list) -> None:
+        """Set all given ads as closed"""
+        for ad_id in id_list:
+            ad = Ad.objects.get(id=ad_id)
+            ad.closed = True
+            ad.closing_date = datetime.date.today()
+            ad.save()
+
+    def del_old_closed(self, id_list: list) -> None:
+        """Remove all specified ads if they are older than a week"""
+        for ad_id in id_list:
+            Ad.objects.get(id=ad_id)

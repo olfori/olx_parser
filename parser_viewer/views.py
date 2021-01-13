@@ -50,7 +50,7 @@ def dashboard(request, template_name='dashboard.html'):
 def ads(request, sp_id, template_name='ads.html'):
     """Ads page"""
     ads = SPM().get_ads(sp_id)
-    print('ads 3', ads[:3])
+
     return render(request, template_name, {
         'ads': ads,
     })

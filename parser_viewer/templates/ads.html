@@ -53,6 +53,8 @@
                         <thead id="main-thead">
                             <tr>
                                 <th scope="col" class="col">Title</th>
+                                <th scope="col" class="col-auto">Closing date</th>
+                                <th scope="col" class="col-auto">Closed</th>
                                 <th scope="col" class="col-auto">Price</th>
                                 <th scope="col" class="col-auto">Date</th>
                                 <th scope="col" class="col-auto">City</th>
@@ -61,7 +63,15 @@
                         <tbody id="main-tbody">
                             {% for ad in ads %}
                             <tr>
-                                <td scope="row">{{ ad.title }}</td>
+                                <td scope="row" onclick="cl('{{ ad.link }}');">
+                                    {{ ad.title }}
+                                </td>
+                                {% if ad.closing_date %}
+                                <td>{{ ad.closing_date }}</td>
+                                {% else %}
+                                <td></td>
+                                {% endif %}
+                                <td>{{ ad.closed }}</td>
                                 <td>{{ ad.price }}</td>
                                 <td>{{ ad.date }}</td>
                                 <td>{{ ad.city }}</td>
@@ -79,7 +89,15 @@
     <script>$.ajaxSetup({ headers: { "X-CSRFToken": '{{ csrf_token }}' } });</script>
     <script>window.jQuery || document.write('<script src="../assets/js/vendor/jquery.slim.min.js"><\/script>')</script>
     <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
-
+    <script>
+        function cl(link) {
+            navigator.clipboard.writeText(link).then(function () {
+                /* clipboard successfully set */
+            }, function () {
+                /* clipboard write failed */
+            });
+        };
+    </script>
 </body>
 
 </html>
